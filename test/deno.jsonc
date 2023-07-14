@@ -1,0 +1,10 @@
+{
+	"tasks": {
+		"dev": "deno run -A --watch main.ts"
+	},
+	"lock": false,
+	"imports": {
+		"react": "https://esm.sh/react",
+		"lit": "https://esm.sh/lit"
+	}
+}

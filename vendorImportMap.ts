@@ -28,7 +28,7 @@ const headers = new Headers({
 });
 
 
-export default async function vendorImportMap(importMap: ImportMap) {
+export default async function vendorImportMap(importMap: ImportMap): Promise<ImportMap | undefined> {
   if (!importMap.imports) return;
 
   const newImportMap = importMap;
@@ -44,16 +44,6 @@ export default async function vendorImportMap(importMap: ImportMap) {
   console.log(newImportMap);
   return newImportMap;
 }
-
-const importMap = {
-  imports: {
-    "react": "https://esm.sh/react",
-    "react-dom": "https://esm.sh/v128/react-dom@18.2.0/es2022/react-dom.mjs",
-    "lit": "https://esm.sh/lit",
-  },
-};
-
-vendorImportMap(importMap);
 
 function isExternalUrl(url: string) {
   return url.startsWith("http://") || url.startsWith("https://");
@@ -92,6 +82,11 @@ async function vendorModule(path: string) {
 
       const relativePath = slash(ensureRelative(relative(dirname(localPath), vendorPath)))
 
+      console.log({
+        importedModulePath,
+        relativePath
+      })
+      
       moduleText = moduleText.replace(importedModulePath, relativePath);
 
       await vendorModule(moduleUrl);
