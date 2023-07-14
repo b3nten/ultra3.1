@@ -27,11 +27,16 @@ const headers = new Headers({
     "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0)",
 });
 
+const absoluteVendorPath = Deno.cwd() + "/vendor";
+
 export default async function vendorImportMap(importMap: ImportMap) {
   if (!importMap.imports) return;
+
   const newImportMap = importMap;
+
   for await (const [module, specifier] of Object.entries(importMap.imports)) {
     if (!specifier) continue;
+
     if (isExternalUrl(specifier)) {
       const localPath = await vendorModule(specifier);
       newImportMap.imports![module] = localPath;
@@ -55,59 +60,62 @@ function isExternalUrl(url: string) {
 }
 
 async function vendorModule(path: string) {
-  /*
-    We need to create a local path from this url. This will be the location this module will be stored.
-    We parse imports. External URL's are fine, we don't need to do anything with them.
-    If the path is relative, eg. ./ or ../ we need to resolve it to an absolute path with current module external url.
-    If the path is absolute, we need to resolve it to an absolute path with the root url.
-  */
-
   const module = await fetch(path, { headers });
+
   if (!module.ok) throw new Error(`Unable to fetch module ${path}`);
+
   let moduleText = await module.text();
 
   for await (const module of await parseImports(moduleText)) {
-    const modulePath = module.moduleSpecifier.value!;
+    const importedModulePath = module.moduleSpecifier.value!;
 
-    if (!modulePath) continue;
+    if (!importedModulePath) continue;
 
-    if (isExternalUrl(modulePath)) {
+    if (isExternalUrl(importedModulePath)) {
       // if path is external
-      const currentModuleVendorPath = externalPathToVendorPath(path);
-      const externalModuleVendorPath = externalPathToVendorPath(modulePath);
+      const currentModuleVendorPath = urlToVendorPath(path);
+      const externalModuleVendorPath = urlToVendorPath(importedModulePath);
 
       const relativePath = slash(
-        relative(currentModuleVendorPath, externalModuleVendorPath).replace(
-          ".",
-          "",
-        ),
+        relative(dirname(currentModuleVendorPath), externalModuleVendorPath),
       );
+      moduleText = moduleText.replace(importedModulePath, relativePath);
 
-      moduleText = moduleText.replaceAll(modulePath, relativePath);
-
-      await vendorModule(modulePath);
-
-    } else if (modulePath.startsWith("/")) {
+      await vendorModule(importedModulePath);
+    } else if (importedModulePath.startsWith("/")) {
       // if path is absolute
-      const moduleUrl = new URL(path).origin + modulePath
-      console.log(externalPathToVendorPath(moduleUrl))
+      const moduleUrl = new URL(path).origin + importedModulePath;
       // need to go up to the vendor path, then back down to the new module path
-      moduleText = moduleText.replaceAll(modulePath, externalPathToVendorPath(moduleUrl));
+      const abLink = absoluteVendorPath + "/" + new URL(path).host +
+        importedModulePath;
+      const relativeLink = abLink.replace(Deno.cwd(), ".");
+
+      moduleText = slash(moduleText.replace(
+        importedModulePath,
+        relativeLink,
+      ));
+      // console.log(relativeLink)
+
       await vendorModule(moduleUrl);
     }
   }
-  const folderPath = dirname(externalPathToVendorPath(path));
+
+  let targetPath = urlToVendorPath(path);
+
+  const folderPath = dirname(targetPath);
   await Deno.mkdir(folderPath, { recursive: true });
-  const fileName = extname(basename(path)) ? basename(path) : "index.js";
+
+  const fileName = basename(targetPath);
   await Deno.writeTextFile(folderPath + "/" + fileName, moduleText);
-  return fileName;
+
+  return targetPath;
 }
 
-function externalPathToVendorPath(path: string) {
+function urlToVendorPath(path: string) {
   const url = new URL(path);
+  // if no extension, it's a facade. We add /index.js to the end
+  if (!extname(url.pathname)) {
+    return `./vendor/${url.host}${url.pathname}/index.js`;
+  }
   return `./vendor/${url.host}${url.pathname}`;
-}
-
-function ensureFileExtension(path: string) {
-  return extname(path) ? path : path + ".js";
 }
