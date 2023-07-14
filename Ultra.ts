@@ -8,7 +8,9 @@ import {
 import type { ImportMap } from "./importMap.ts";
 import vendorImportMap from "./vendorImportMap.ts";
 import { Logger } from "./log.ts";
-import preloadHTMLDependencies from "./preloadHTMLDependencies.ts";
+import * as esbuild from 'npm:esbuild'
+import injectHtmlDeps from "./injectHtmlDeps.ts";
+import injectImportMap from "./injectImportMap.ts";
 
 const safe = <T extends (...args: any) => any>(
   fn: T,
@@ -56,9 +58,13 @@ export default class Ultra {
     });
   }
 
-  public async parseHtml(html: string) {
-    const tags = await preloadHTMLDependencies(html);
+  public async injectHtmlDeps(html: string) {
+    const tags = await injectHtmlDeps(html, this.vendorImportMap ?? this.importMap);
     return html.replace("</head>", `${tags}\n</head>`);
+  }
+
+  public injectImportMap(html: string) {
+    return injectImportMap(html, this.vendorImportMap ?? this.importMap);
   }
 
   #serveStatic = async (ctx: Context, next: Next) => {
@@ -66,10 +72,11 @@ export default class Ultra {
       await next();
       return;
     }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     // TODO: This will be vulnerable to directory traversal attacks.
     try {
       const path = new URL(ctx.req.raw.url).pathname;
-      console.log(toFileUrl(Deno.cwd() + path));
+      console.log(path)
       const res = await fetch(toFileUrl(Deno.cwd() + path));
       const contentType = getMimeType(path) ?? res.headers.get("content-type");
       let headers = new Headers();
@@ -88,6 +95,33 @@ export default class Ultra {
   public serveStatic() {
     // @ts-ignore
     this.hono.use(this.#serveStatic);
+  }
+
+  #serveCompiler = async (ctx: Context, next: Next) => {
+    // TODO: This will be vulnerable to directory traversal attacks.
+    console.log('compiler')
+    try {
+      const path = new URL(ctx.req.raw.url).pathname.replace("/@compiler", "");
+      const res = await fetch(toFileUrl(Deno.cwd() + path));
+      const code = await esbuild.transform(await res.text(), {
+        loader: "tsx",
+        format: "esm",
+        jsx: "automatic",
+      });
+      return new Response(code.code, {
+        headers: {
+          "content-type": "application/javascript"
+        }
+      });
+    } catch {
+      return new Response("Could not compile.", { status: 404 })
+    }
+
+  }
+
+  public serveCompiler(){
+    // @ts-ignore
+    this.hono.get("/@compiler/*", this.#serveCompiler);
   }
 
   public async build() {

@@ -41,7 +41,7 @@ export default async function vendorImportMap(importMap: ImportMap): Promise<Imp
       newImportMap.imports![module] = localPath;
     }
   }
-  console.log(newImportMap);
+
   return newImportMap;
 }
 
@@ -81,11 +81,6 @@ async function vendorModule(path: string) {
       const localPath = urlToVendorPath(path);
 
       const relativePath = slash(ensureRelative(relative(dirname(localPath), vendorPath)))
-
-      console.log({
-        importedModulePath,
-        relativePath
-      })
       
       moduleText = moduleText.replace(importedModulePath, relativePath);
 

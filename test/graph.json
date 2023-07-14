@@ -1,0 +1,90 @@
+{
+  "roots": ["file:///C:/dev/ultra3.1/test/entry.js"],
+  "modules": [
+    {
+      "kind": "esm",
+      "dependencies": [
+        {
+          "specifier": "./src/app.js",
+          "code": {
+            "specifier": "file:///C:/dev/ultra3.1/test/src/app.js",
+            "span": {
+              "start": { "line": 0, "character": 16 },
+              "end": { "line": 0, "character": 30 }
+            }
+          }
+        },
+        {
+          "specifier": "react",
+          "code": {
+            "error": "relative URL without a base",
+            "span": {
+              "start": { "line": 1, "character": 18 },
+              "end": { "line": 1, "character": 25 }
+            }
+          }
+        },
+        {
+          "specifier": "react-dom/client",
+          "code": {
+            "error": "relative URL without a base",
+            "span": {
+              "start": { "line": 2, "character": 27 },
+              "end": { "line": 2, "character": 45 }
+            }
+          }
+        }
+      ],
+      "size": 231,
+      "mediaType": "JavaScript",
+      "specifier": "file:///C:/dev/ultra3.1/test/entry.js"
+    },
+    {
+      "kind": "esm",
+      "dependencies": [
+        {
+          "specifier": "react",
+          "code": {
+            "error": "relative URL without a base",
+            "span": {
+              "start": { "line": 0, "character": 18 },
+              "end": { "line": 0, "character": 25 }
+            }
+          }
+        },
+        {
+          "specifier": "./counter.js",
+          "code": {
+            "specifier": "file:///C:/dev/ultra3.1/test/src/counter.js",
+            "span": {
+              "start": { "line": 1, "character": 24 },
+              "end": { "line": 1, "character": 38 }
+            }
+          }
+        }
+      ],
+      "size": 163,
+      "mediaType": "JavaScript",
+      "specifier": "file:///C:/dev/ultra3.1/test/src/app.js"
+    },
+    {
+      "kind": "esm",
+      "dependencies": [
+        {
+          "specifier": "react",
+          "code": {
+            "error": "relative URL without a base",
+            "span": {
+              "start": { "line": 0, "character": 18 },
+              "end": { "line": 0, "character": 25 }
+            }
+          }
+        }
+      ],
+      "size": 379,
+      "mediaType": "JavaScript",
+      "specifier": "file:///C:/dev/ultra3.1/test/src/counter.js"
+    }
+  ],
+  "redirects": {}
+}
