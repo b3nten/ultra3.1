@@ -27,7 +27,6 @@ const headers = new Headers({
     "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0)",
 });
 
-const absoluteVendorPath = Deno.cwd() + "/vendor";
 
 export default async function vendorImportMap(importMap: ImportMap) {
   if (!importMap.imports) return;
@@ -49,7 +48,8 @@ export default async function vendorImportMap(importMap: ImportMap) {
 const importMap = {
   imports: {
     "react": "https://esm.sh/react",
-    "react-dom": "https://esm.sh/react-dom",
+    "react-dom": "https://esm.sh/v128/react-dom@18.2.0/es2022/react-dom.mjs",
+    "lit": "https://esm.sh/lit",
   },
 };
 
@@ -85,16 +85,14 @@ async function vendorModule(path: string) {
     } else if (importedModulePath.startsWith("/")) {
       // if path is absolute
       const moduleUrl = new URL(path).origin + importedModulePath;
-      // need to go up to the vendor path, then back down to the new module path
-      const abLink = absoluteVendorPath + "/" + new URL(path).host +
-        importedModulePath;
-      const relativeLink = abLink.replace(Deno.cwd(), ".");
+      
+      const vendorPath = urlToVendorPath(moduleUrl);
 
-      moduleText = slash(moduleText.replace(
-        importedModulePath,
-        relativeLink,
-      ));
-      // console.log(relativeLink)
+      const localPath = urlToVendorPath(path);
+
+      const relativePath = slash(ensureRelative(relative(dirname(localPath), vendorPath)))
+
+      moduleText = moduleText.replace(importedModulePath, relativePath);
 
       await vendorModule(moduleUrl);
     }
@@ -118,4 +116,13 @@ function urlToVendorPath(path: string) {
     return `./vendor/${url.host}${url.pathname}/index.js`;
   }
   return `./vendor/${url.host}${url.pathname}`;
+}
+
+function ensureRelative(path: string) {
+  if (path.startsWith("/")) {
+    return "." + path;
+  } else if (!path.startsWith("./") && !path.startsWith("../")) {
+    return "./" + path;
+  }
+  return path;
 }
